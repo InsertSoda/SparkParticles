@@ -1,24 +1,5 @@
 function SparkParticle()
     local rlib = {}
-
-    local partCache = {}
-    local function getPart()
-        for i,v in pairs(partCache) do
-            if v == true then
-                partCache[i] = false
-                return i
-            end
-        end
-
-        local pa = Instance.New('Part')
-        partCache[pa] = false
-        return pa
-    end
-
-    local function returnPart(pa)
-        pa.Size = Vector3.New(0, 0, 0)
-        partCache[pa] = true
-    end
   
     local function NewEmitter()
         local tab = {
@@ -107,43 +88,6 @@ function SparkParticle()
         return lib
     end
 
-    function rlib:ColorSequence(data)
-        local lib = {
-            data = {},
-            points = {}
-        }
-    
-        lib.data = data
-    
-        function LoadColorChannels()
-            lib.points = {
-                r = {},
-                g = {},
-                b = {},
-                a = {},
-            }
-            for _,v in pairs(lib.data) do
-                table.insert(lib.points.r, v.r)
-                table.insert(lib.points.g, v.g)
-                table.insert(lib.points.b, v.b)
-                table.insert(lib.points.a, v.a)
-            end
-        end
-    
-        LoadColorChannels()
-    
-        function lib:GetVal(t)
-            return Color.New(
-                rlib:NumberSequence(lib.points.r):GetVal(t),
-                rlib:NumberSequence(lib.points.g):GetVal(t),
-                rlib:NumberSequence(lib.points.b):GetVal(t),
-                rlib:NumberSequence(lib.points.a):GetVal(t)
-            )
-        end
-    
-        return lib
-    end
-
     local function GetValOfVai(v, ti)
         if type(v) == "number" or (type(v) == "userdata") then
             return v
@@ -164,22 +108,44 @@ function SparkParticle()
         }
         local running = false
 
+        local partCache = {}
+        local function getPart()
+            for i,v in pairs(partCache) do
+                if v == true then
+                    partCache[i] = false
+                    return i
+                end
+            end
+
+            local pa = Instance.New("Text3D")
+            pa.Text = ""
+            pa.FaceCamera = true
+            local decal = Instance.New("Decal")
+            decal.Name = "Image"
+            decal.ImageID = mlib.Configs.ImageID
+            decal.ImageType = mlib.Configs.ImageType or ImageType.Asset
+            decal.Parent = pa
+            partCache[pa] = false
+            return pa
+        end
+
+        local function returnPart(pa)
+            pa.Size = Vector3.New(0, 0, 0)
+            partCache[pa] = true
+        end
+
         mlib.BeforeCreate = NewEmitter()
 
         local function CreateParticle()
             spawn(function()
                 local p = getPart()
-                p.Size = Vector3.New(0, 0, 0)
-                p.Material = mlib.Configs.Material
-                p.Shape = mlib.Configs.Shape
+                p["Image"].Size = Vector3.New(0, 0, 0)
                 p.Position = mlib.Configs.Pivot.Position
                 p.Rotation = mlib.Configs.Pivot.Rotation + Vector3.New(
                     math.random(mlib.Configs.Spread.x * -1, mlib.Configs.Spread.x),
                     math.random(mlib.Configs.Spread.y * -1, mlib.Configs.Spread.y),
                     math.random(mlib.Configs.Spread.z * -1, mlib.Configs.Spread.z)
                 )
-                p.Anchored = true
-                p.CanCollide = mlib.Configs.Collision
             
                 local ti = 0
                 local tiNz = 0
@@ -196,10 +162,9 @@ function SparkParticle()
                 
                     local scaleL = GetValOfVai(mlib.Configs.Size, tiNz)
                     gravi = gravi + (GetValOfVai(mlib.Configs.Gravity, tiNz) * (curSpeed * deltaTime)) / 4
-                    p.Color = GetValOfVai(mlib.Configs.ParticleColor, tiNz)
                     p.Position = p.Position + (p.Forward * (GetValOfVai(mlib.Configs.ForceForward, tiNz) * deltaTime) * curSpeed) + gravi
-                    p.Rotation = p.Rotation + GetValOfVai(mlib.Configs.AngularVelocity, tiNz) * deltaTime * curSpeed
-                    p.Size = Vector3.New(scaleL, scaleL, scaleL)
+                    p["Image"].LocalRotation = p["Image"].LocalRotation + Vector3.New(0,0, GetValOfVai(mlib.Configs.AngularVelocity, tiNz) * deltaTime * curSpeed)
+                    p["Image"].Size = Vector3.New(scaleL, scaleL, scaleL)
                 
                     if ti >= lifetime then
                         game.Rendered:Disconnect(updateParticle)
